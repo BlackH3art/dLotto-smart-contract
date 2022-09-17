@@ -3,6 +3,7 @@ pragma solidity ^0.8.10;
 
 contract Lottery {
 
+  address owner; 
   uint8[] public rangeArray;
   uint8[] public winningArray;
   uint128 public ticketId;
@@ -15,10 +16,19 @@ contract Lottery {
   address[] public fourWinners;
   address[] public threeWinners;
 
+  uint256 public ticketPrice;
+  uint256 public prizePool;
+  uint256 public protocolFee;
+
 
   constructor() {
+    owner = msg.sender;
+
     rangeArray = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36];
     ticketId = 0;
+
+    // later set it to 1 ether
+    ticketPrice = 10000000000000000; // 0.01 ether
   }
 
 
@@ -64,7 +74,7 @@ contract Lottery {
   //                  PUBLIC INTERFACE
   // ===================================================
 
-
+  // *** PAY TICKET PRICE ***
   function buyTicket(
     uint8 first,
     uint8 second,
@@ -72,7 +82,12 @@ contract Lottery {
     uint8 fourth,
     uint8 fifth,
     uint8 sixth
-  ) public {
+  ) public payable {
+
+    // 80% from the ticket price go to prizePool
+    prizePool = (msg.value / 100) * 80;
+    // 20% from the ticket price go to protocolFee and is claimable by admin.
+    protocolFee = (msg.value / 100) * 20;
 
     ticketsArray.push([first, second, third, fourth, fifth, sixth]);
     ticketOwnersArray.push(msg.sender);
@@ -116,6 +131,42 @@ contract Lottery {
   }
 
 
+  // admin can restart the game
+  // *** ONLY OWNER ***
+  function resetGame() public {
+
+    rangeArray = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36];
+    ticketId = 0;
+
+    delete ticketsArray;
+    delete ticketOwnersArray;
+    delete winningArray;
+
+    delete sixWinners;
+    delete fiveWinners;
+    delete fourWinners;
+    delete threeWinners;
+  }
+
+
+
+  // ===================================================
+  //               MODIFIERS - REQUIREMENTS
+  // ===================================================
+
+
+  // Only owner is allowed to call function
+  modifier onlyOwner() {
+    require(msg.sender == owner, "You are not an owner");
+    _;
+  }
+
+
+  // User must pay lottery ticket price
+  modifier payTicketPrice() {
+    require(msg.value == ticketPrice, "Incorrect value");
+    _;
+  }
 
 
 
