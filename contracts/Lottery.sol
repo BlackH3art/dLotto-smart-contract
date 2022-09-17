@@ -132,9 +132,9 @@ contract Lottery is VRFConsumerBaseV2 {
   ) public payable {
 
     // 80% from the ticket price go to prizePool
-    prizePool = (msg.value / 100) * 80;
+    prizePool = prizePool + (msg.value / 100) * 80;
     // 20% from the ticket price go to protocolFee and is claimable by admin.
-    protocolFee = (msg.value / 100) * 20;
+    protocolFee = protocolFee + (msg.value / 100) * 20;
 
     ticketsArray.push([first, second, third, fourth, fifth, sixth]);
     ticketOwnersArray.push(msg.sender);
