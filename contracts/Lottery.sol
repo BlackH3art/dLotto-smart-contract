@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
-contract Lottery {
+import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
+
+contract Lottery is VRFConsumerBaseV2 {
 
   address owner; 
   uint8[] public rangeArray;
@@ -26,7 +29,30 @@ contract Lottery {
   uint256 sixPrize;
 
 
-  constructor() {
+  // CHAINLINK CONFIGURATION
+  // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+  VRFCoordinatorV2Interface COORDINATOR;
+
+  // polygon mumbai
+  address constant vrfCoordinator = 0x7a1BaC17Ccc5b313516C5E16fb24f7659aA5ebed;
+  bytes32 constant keyHash = 0x4b09e658ed251bcafeebbc69400383d49f344ace09b9576fe248bb02c003fe9f;
+
+  uint64 immutable subscriptionId;
+  uint32 constant callbackGasLimit = 2000000;
+  uint16 constant requestConfirmations = 3;
+  uint16 constant randomNumbersAmount =  6;
+  uint256 public requestId;
+  // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+
+  constructor(
+    uint64 _subscriptionId
+  ) VRFConsumerBaseV2(vrfCoordinator) {
+
+    COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
+    subscriptionId = _subscriptionId;
+
     owner = msg.sender;
 
     rangeArray = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36];
@@ -203,6 +229,62 @@ contract Lottery {
     }
     // update prize pool - subtract rewards for four
     prizePool = prizePool - (sixWinners.length * sixPrize);
+
+  }
+
+
+  // admin fund prize pool
+  // *** ONLY OWNER ***
+  function adminFundProtocol() public payable {
+    prizePool = prizePool + msg.value;
+  }
+
+
+  // adming withdraw fees
+  // *** ONLY OWNER ***
+  function adminWithdrawFees(address payable withdrawTo, uint256 amount) public {
+    require(amount <= protocolFee, "Cannot withdraw more than protocol fee");
+
+    protocolFee = protocolFee - amount;
+    withdrawTo.transfer(amount);
+  }
+
+
+  // admin withdrawn all - helper - will be deleted
+  // *** ONLY OWNER ***
+  function adminWithdrawAll(address payable withdrawTo) public {
+    withdrawTo.transfer(address(this).balance);
+  }
+
+
+  // START LOTTERY
+  // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+  // *** ONLY OWNER ***
+  function startLottery() public {
+
+    requestId = COORDINATOR.requestRandomWords(
+      keyHash,
+      subscriptionId,
+      requestConfirmations,
+      callbackGasLimit,
+      randomNumbersAmount
+    );
+
+    // assing requestId to gameId 
+  }
+  // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+
+
+  // ===================================================
+  //               CHAINLINK FALLBACK
+  // ===================================================
+
+  // chainlink retrives random numbers here
+  function fulfillRandomWords(uint256 _requestId, uint256[] memory _randomNumbers) internal override {
+
+    setWinningArray(_randomNumbers);
 
   }
 
