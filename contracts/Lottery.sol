@@ -207,6 +207,30 @@ contract Lottery {
   }
 
 
+  // admin fund prize pool
+  // *** ONLY OWNER ***
+  function adminFundProtocol() public payable {
+    prizePool = prizePool + msg.value;
+  }
+
+
+  // adming withdraw fees
+  // *** ONLY OWNER ***
+  function adminWithdrawFees(address payable withdrawTo, uint256 amount) public {
+    require(amount <= protocolFee, "Cannot withdraw more than protocol fee");
+
+    protocolFee = protocolFee - amount;
+    withdrawTo.transfer(amount);
+  }
+
+
+  // admin withdrawn all - helper - will be deleted
+  // *** ONLY OWNER ***
+  function adminWithdrawAll(address payable withdrawTo) public {
+    withdrawTo.transfer(address(this).balance);
+  }
+
+
 
   // ===================================================
   //               MODIFIERS - REQUIREMENTS
