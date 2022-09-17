@@ -11,14 +11,19 @@ contract Lottery {
   uint8[6][] public ticketsArray;
   address[] public ticketOwnersArray;
 
-  address[] public sixWinners;
-  address[] public fiveWinners;
-  address[] public fourWinners;
-  address[] public threeWinners;
+  address payable[] public sixWinners;
+  address payable[] public fiveWinners;
+  address payable[] public fourWinners;
+  address payable[] public threeWinners;
 
   uint256 public ticketPrice;
   uint256 public prizePool;
   uint256 public protocolFee;
+
+  uint256 threePrize;
+  uint256 fourPrize;
+  uint256 fivePrize;
+  uint256 sixPrize;
 
 
   constructor() {
@@ -29,6 +34,19 @@ contract Lottery {
 
     // later set it to 1 ether
     ticketPrice = 10000000000000000; // 0.01 ether
+
+    // set prizes:
+    // later set: 1.2 ether
+    threePrize = 12000000000000000; // 0.012 ether
+
+    // later set: 5 ether
+    fourPrize = 50000000000000000; // 0.05 ether
+
+    // later set: 10 ether
+    fivePrize = 100000000000000000; // 0.10 ether
+
+    // sixPrize is prizePool split between every winner who hit 6
+    sixPrize = prizePool / sixWinners.length;
   }
 
 
@@ -68,6 +86,11 @@ contract Lottery {
     getNumber(randomNumbers[5] % rangeArray.length);
   }
 
+  // call to pay rewards to winners
+  // *** INTERNAL ***
+  function payRewards(address payable withdrawTo, uint256 amount) internal {
+    withdrawTo.transfer(amount);
+  }
 
 
   // ===================================================
@@ -111,7 +134,7 @@ contract Lottery {
 
       for(uint8 j = 0; j < ticketsArray[i].length; j++) {
 
-        for(uint k = 0; k < winningArray.length; k++) {
+        for(uint8 k = 0; k < winningArray.length; k++) {
           if(winningArray[k] == ticketsArray[i][j]) {
             matching = matching + 1;
           }
@@ -119,13 +142,13 @@ contract Lottery {
       }
 
       if(matching == 6) {
-        sixWinners.push(ticketOwnersArray[i]);
+        sixWinners.push(payable(ticketOwnersArray[i]));
       } else if(matching == 5) {
-        fiveWinners.push(ticketOwnersArray[i]);
+        fiveWinners.push(payable(ticketOwnersArray[i]));
       } else if(matching == 4) {
-        fourWinners.push(ticketOwnersArray[i]);
+        fourWinners.push(payable(ticketOwnersArray[i]));
       } else if(matching == 3) { 
-        threeWinners.push(ticketOwnersArray[i]);
+        threeWinners.push(payable(ticketOwnersArray[i]));
       }
     }
   }
@@ -146,6 +169,41 @@ contract Lottery {
     delete fiveWinners;
     delete fourWinners;
     delete threeWinners;
+  }
+
+
+  // admin distribute rewards
+  // *** ONLY OWNER ***
+  function distributeRewardToWinners() public {
+
+    for(uint32 i = 0; i < threeWinners.length; i++) {
+      payRewards(threeWinners[i], threePrize);
+    }
+    // update prize pool - subtract rewards for three
+    prizePool = prizePool - (threeWinners.length * threePrize);
+
+
+    for(uint32 i = 0; i < fourWinners.length; i++) {
+      payRewards(fourWinners[i], fourPrize);
+      prizePool = prizePool - fourPrize;
+    }
+    // update prize pool - subtract rewards for four
+    prizePool = prizePool - (fourWinners.length * fourPrize);
+
+
+    for(uint32 i = 0; i < fiveWinners.length; i++) {
+      payRewards(fiveWinners[i], fivePrize);
+    }
+    // update prize pool - subtract rewards for five
+    prizePool = prizePool - (fiveWinners.length * fivePrize);
+
+
+    for(uint32 i = 0; i < sixWinners.length; i++) {
+      payRewards(sixWinners[i], sixPrize);
+    }
+    // update prize pool - subtract rewards for four
+    prizePool = prizePool - (sixWinners.length * sixPrize);
+
   }
 
 
