@@ -7,10 +7,25 @@ contract Lottery {
   uint8[] public winningArray;
   uint128 public ticketId;
 
+  uint8[6][] public ticketsArray;
+  address[] public ticketOwnersArray;
+
+  address[] public sixWinners;
+  address[] public fiveWinners;
+  address[] public fourWinners;
+  address[] public threeWinners;
+
+
   constructor() {
     rangeArray = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36];
     ticketId = 0;
   }
+
+
+
+  // ===================================================
+  //                  INTERNAL INTERFACE
+  // ===================================================
 
 
   // get number from rangeArray and push to winningArray
@@ -45,8 +60,60 @@ contract Lottery {
 
 
 
+  // ===================================================
+  //                  PUBLIC INTERFACE
+  // ===================================================
 
 
+  function buyTicket(
+    uint8 first,
+    uint8 second,
+    uint8 third,
+    uint8 fourth,
+    uint8 fifth,
+    uint8 sixth
+  ) public {
+
+    ticketsArray.push([first, second, third, fourth, fifth, sixth]);
+    ticketOwnersArray.push(msg.sender);
+
+    ticketId++; 
+  }
+
+
+
+  // ===================================================
+  //                  ADMIN INTERFACE
+  // ===================================================
+
+
+  // admin check for winners and push them to arrays eligible for rewards
+  // *** ONLY OWNER ***
+  function checkWinners() public {
+
+    for(uint32 i = 0; i < ticketsArray.length; i++) {
+      uint8 matching = 0;
+
+      for(uint8 j = 0; j < ticketsArray[i].length; j++) {
+
+        for(uint k = 0; k < winningArray.length; k++) {
+          if(winningArray[k] == ticketsArray[i][j]) {
+            matching = matching + 1;
+          }
+        }
+      }
+
+      if(matching == 6) {
+        sixWinners.push(ticketOwnersArray[i]);
+      } else if(matching == 5) {
+        fiveWinners.push(ticketOwnersArray[i]);
+      } else if(matching == 4) {
+        fourWinners.push(ticketOwnersArray[i]);
+      } else if(matching == 3) { 
+        threeWinners.push(ticketOwnersArray[i]);
+      }
+    }
+  }
 
 
 
