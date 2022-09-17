@@ -71,8 +71,6 @@ contract Lottery is VRFConsumerBaseV2 {
     // later set: 10 ether
     fivePrize = 100000000000000000; // 0.10 ether
 
-    // sixPrize is prizePool split between every winner who hit 6
-    sixPrize = prizePool / sixWinners.length;
   }
 
 
@@ -223,7 +221,7 @@ contract Lottery is VRFConsumerBaseV2 {
     // update prize pool - subtract rewards for five
     prizePool = prizePool - (fiveWinners.length * fivePrize);
 
-
+    sixPrize = prizePool / sixWinners.length;
     for(uint32 i = 0; i < sixWinners.length; i++) {
       payRewards(sixWinners[i], sixPrize);
     }
