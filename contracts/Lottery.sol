@@ -74,7 +74,7 @@ contract Lottery {
   //                  PUBLIC INTERFACE
   // ===================================================
 
-
+  // *** PAY TICKET PRICE ***
   function buyTicket(
     uint8 first,
     uint8 second,
@@ -149,6 +149,24 @@ contract Lottery {
   }
 
 
+
+  // ===================================================
+  //               MODIFIERS - REQUIREMENTS
+  // ===================================================
+
+
+  // Only owner is allowed to call function
+  modifier onlyOwner() {
+    require(msg.sender == owner, "You are not an owner");
+    _;
+  }
+
+
+  // User must pay lottery ticket price
+  modifier payTicketPrice() {
+    require(msg.value == ticketPrice, "Incorrect value");
+    _;
+  }
 
 
 
