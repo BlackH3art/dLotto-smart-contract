@@ -10,7 +10,7 @@ module.exports = {
   solidity: "0.8.10",
   networks: {
     mumbai: {
-      url: process.env.ALCHEMY_MUMBAI,
+      url: process.env.MUMBAI_RPC,
       accounts: [process.env.PRIVATE_KEY],
       saveDeployments: true,
     },
