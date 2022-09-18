@@ -47,6 +47,7 @@ contract Lottery is VRFConsumerBaseV2 {
 
 
   event WinningArraySet(uint8[] array);
+  event UpdatePrizePool(uint256 updatedPrizePool);
 
 
   constructor(
@@ -203,6 +204,8 @@ contract Lottery is VRFConsumerBaseV2 {
     ticketOwnersArray.push(msg.sender);
 
     ticketId++; 
+
+    emit UpdatePrizePool(prizePool);
   }
 
 
@@ -235,6 +238,8 @@ contract Lottery is VRFConsumerBaseV2 {
   // *** ONLY OWNER ***
   function adminFundProtocol() public payable {
     prizePool = prizePool + msg.value;
+
+    emit UpdatePrizePool(prizePool);
   }
 
 
