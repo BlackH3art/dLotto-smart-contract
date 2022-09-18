@@ -46,6 +46,9 @@ contract Lottery is VRFConsumerBaseV2 {
   // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 
+  event WinningArraySet(uint8[] array);
+
+
   constructor(
     uint64 _subscriptionId
   ) VRFConsumerBaseV2(vrfCoordinator) {
@@ -83,8 +86,7 @@ contract Lottery is VRFConsumerBaseV2 {
   // get number from rangeArray and push to winningArray
   // after the is pushed to winningArray, delete it from the rangeArray 
   // so all the numbers are uniqe
-  // *** INTERNAL ***
-  function getNumber(uint256 number) public {
+  function getNumber(uint256 number) internal {
     winningArray.push(rangeArray[number]);
 
     delete rangeArray[number];
@@ -96,11 +98,7 @@ contract Lottery is VRFConsumerBaseV2 {
 
   // pass here array of random numbers from chainlink to receive 
   // winningArray of 6 random numbers
-  // *** INTERNAL ***
-  // *** WARNING ***
-  // this may be gas consuming, check if Chainlink will be able
-  // to execute this function in fallback
-  function setWinningArray(uint256[] memory randomNumbers) public {
+  function setWinningArray(uint256[] memory randomNumbers) internal {
 
     getNumber(randomNumbers[0] % rangeArray.length);
     getNumber(randomNumbers[1] % rangeArray.length);
@@ -108,50 +106,53 @@ contract Lottery is VRFConsumerBaseV2 {
     getNumber(randomNumbers[3] % rangeArray.length);
     getNumber(randomNumbers[4] % rangeArray.length);
     getNumber(randomNumbers[5] % rangeArray.length);
+
+    emit WinningArraySet(winningArray);
   }
 
   // call to pay rewards to winners
-  // *** INTERNAL ***
   function payRewards(address payable withdrawTo, uint256 amount) internal {
     withdrawTo.transfer(amount);
   }
 
+  // chainlink fallback distribute rewards
+  function distributeRewardToWinners() internal {
 
-  // ===================================================
-  //                  PUBLIC INTERFACE
-  // ===================================================
+    for(uint32 i = 0; i < threeWinners.length; i++) {
+      payRewards(threeWinners[i], threePrize);
+    }
+    // update prize pool - subtract rewards for three
+    prizePool = prizePool - (threeWinners.length * threePrize);
 
-  // *** PAY TICKET PRICE ***
-  function buyTicket(
-    uint8 first,
-    uint8 second,
-    uint8 third,
-    uint8 fourth,
-    uint8 fifth,
-    uint8 sixth
-  ) public payable {
 
-    // 80% from the ticket price go to prizePool
-    prizePool = prizePool + (msg.value / 100) * 80;
-    // 20% from the ticket price go to protocolFee and is claimable by admin.
-    protocolFee = protocolFee + (msg.value / 100) * 20;
+    for(uint32 i = 0; i < fourWinners.length; i++) {
+      payRewards(fourWinners[i], fourPrize);
+      prizePool = prizePool - fourPrize;
+    }
+    // update prize pool - subtract rewards for four
+    prizePool = prizePool - (fourWinners.length * fourPrize);
 
-    ticketsArray.push([first, second, third, fourth, fifth, sixth]);
-    ticketOwnersArray.push(msg.sender);
 
-    ticketId++; 
+    for(uint32 i = 0; i < fiveWinners.length; i++) {
+      payRewards(fiveWinners[i], fivePrize);
+    }
+    // update prize pool - subtract rewards for five
+    prizePool = prizePool - (fiveWinners.length * fivePrize);
+
+    if(sixWinners.length != 0) {
+      sixPrize = prizePool / sixWinners.length;
+    }
+    for(uint32 i = 0; i < sixWinners.length; i++) {
+      payRewards(sixWinners[i], sixPrize);
+    }
+    // update prize pool - subtract rewards for four
+    prizePool = prizePool - (sixWinners.length * sixPrize);
+
   }
-
-
-
-  // ===================================================
-  //                  ADMIN INTERFACE
-  // ===================================================
-
 
   // admin check for winners and push them to arrays eligible for rewards
   // *** ONLY OWNER ***
-  function checkWinners() public {
+  function checkWinners() internal {
 
     for(uint32 i = 0; i < ticketsArray.length; i++) {
       uint8 matching = 0;
@@ -178,6 +179,38 @@ contract Lottery is VRFConsumerBaseV2 {
   }
 
 
+
+  // ===================================================
+  //                  PUBLIC INTERFACE
+  // ===================================================
+
+  // *** PAY TICKET PRICE ***
+  function buyTicket(
+    uint8 first,
+    uint8 second,
+    uint8 third,
+    uint8 fourth,
+    uint8 fifth,
+    uint8 sixth
+  ) public payable payTicketPrice {
+
+    // 80% from the ticket price go to prizePool
+    prizePool = prizePool + (msg.value / 100) * 80;
+    // 20% from the ticket price go to protocolFee and is claimable by admin.
+    protocolFee = protocolFee + (msg.value / 100) * 20;
+
+    ticketsArray.push([first, second, third, fourth, fifth, sixth]);
+    ticketOwnersArray.push(msg.sender);
+
+    ticketId++; 
+  }
+
+
+
+  // ===================================================
+  //                  ADMIN INTERFACE
+  // ===================================================
+
   // admin can restart the game
   // *** ONLY OWNER ***
   function resetGame() public {
@@ -196,39 +229,6 @@ contract Lottery is VRFConsumerBaseV2 {
   }
 
 
-  // admin distribute rewards
-  // *** ONLY OWNER ***
-  function distributeRewardToWinners() public {
-
-    for(uint32 i = 0; i < threeWinners.length; i++) {
-      payRewards(threeWinners[i], threePrize);
-    }
-    // update prize pool - subtract rewards for three
-    prizePool = prizePool - (threeWinners.length * threePrize);
-
-
-    for(uint32 i = 0; i < fourWinners.length; i++) {
-      payRewards(fourWinners[i], fourPrize);
-      prizePool = prizePool - fourPrize;
-    }
-    // update prize pool - subtract rewards for four
-    prizePool = prizePool - (fourWinners.length * fourPrize);
-
-
-    for(uint32 i = 0; i < fiveWinners.length; i++) {
-      payRewards(fiveWinners[i], fivePrize);
-    }
-    // update prize pool - subtract rewards for five
-    prizePool = prizePool - (fiveWinners.length * fivePrize);
-
-    sixPrize = prizePool / sixWinners.length;
-    for(uint32 i = 0; i < sixWinners.length; i++) {
-      payRewards(sixWinners[i], sixPrize);
-    }
-    // update prize pool - subtract rewards for four
-    prizePool = prizePool - (sixWinners.length * sixPrize);
-
-  }
 
 
   // admin fund prize pool
@@ -240,7 +240,7 @@ contract Lottery is VRFConsumerBaseV2 {
 
   // adming withdraw fees
   // *** ONLY OWNER ***
-  function adminWithdrawFees(address payable withdrawTo, uint256 amount) public {
+  function adminWithdrawFees(address payable withdrawTo, uint256 amount) public onlyOwner {
     require(amount <= protocolFee, "Cannot withdraw more than protocol fee");
 
     protocolFee = protocolFee - amount;
@@ -250,7 +250,7 @@ contract Lottery is VRFConsumerBaseV2 {
 
   // admin withdrawn all - helper - will be deleted
   // *** ONLY OWNER ***
-  function adminWithdrawAll(address payable withdrawTo) public {
+  function adminWithdrawAll(address payable withdrawTo) public onlyOwner {
     withdrawTo.transfer(address(this).balance);
   }
 
@@ -284,6 +284,8 @@ contract Lottery is VRFConsumerBaseV2 {
 
     setWinningArray(_randomNumbers);
 
+    checkWinners();
+    distributeRewardToWinners();
   }
 
 
