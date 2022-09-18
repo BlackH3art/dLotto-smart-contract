@@ -11,14 +11,14 @@ const main = async () => {
 
   console.log("**** DEPLOYED ****");
 
-  console.log("CrookedSnouts deployed to:", lottery.address);
+  console.log("Lottery deployed to:", lottery.address);
   console.log(`Verify with: \n npx hardhat verify --constructor-args scripts/deployArguments.js --network mumbai ${lottery.address}`);
 
 }
 
 
 
-const deployCrookedSnouts = async () => {
+const deployLottery = async () => {
   try {
     await main();
     process.exit(0);
@@ -29,4 +29,4 @@ const deployCrookedSnouts = async () => {
 }
 
 
-deployCrookedSnouts();
+deployLottery();
